@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python proofloop/cli.py *)",
+      "Bash(python -m pytest *)",
+      "Bash(python -m mypy *)",
+      "Bash(python -m ruff *)",
+      "Bash(.venv/bin/python proofloop/cli.py *)",
+      "Bash(.venv/bin/pytest *)",
+      "Bash(.venv/bin/mypy *)",
+      "Bash(.venv/bin/ruff *)",
+      "Bash(git diff *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(ls *)",
+      "Bash(cat *)"
+    ]
+  }
+}

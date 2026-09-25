@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+*.env
+.env.*
+!.env.example
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# ProofLoop runtime session data
+# demo/session-snapshot/ is committed — it has real pre-recorded artifacts
+.proofloop/session/
+
+# macOS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
