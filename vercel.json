@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "routes": [
+    { "src": "/styles.css", "dest": "/dashboard/styles.css" },
+    { "src": "/app.js", "dest": "/dashboard/app.js" },
+    { "src": "/demo/session-snapshot/(.*)", "dest": "/demo/session-snapshot/$1" },
+    { "src": "/\\.proofloop/session/(.*)", "dest": "/demo/session-snapshot/$1" },
+    { "src": "/", "dest": "/dashboard/index.html" },
+    { "src": "/(.*)", "dest": "/dashboard/$1" }
+  ]
+}
+

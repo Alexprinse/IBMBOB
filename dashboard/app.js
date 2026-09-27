@@ -95,11 +95,11 @@
     }
 
     // 2. Direct static file fetching fallback
-    const basePath = currentSource === "snapshot"
+    let basePath = currentSource === "snapshot"
       ? "/demo/session-snapshot"
       : "/.proofloop/session";
 
-    const [contractRes, advRes, repairRes, verifRes, packRes] = await Promise.all([
+    let [contractRes, advRes, repairRes, verifRes, packRes] = await Promise.all([
       fetchArtifactFile(basePath, ["change-contract.json", "change_contract.json"]),
       fetchArtifactFile(basePath, ["adversarial-report.json", "adversarial_report.json"]),
       fetchArtifactFile(basePath, ["repair-log.json", "repair_log.json"]),
@@ -107,8 +107,23 @@
       fetchArtifactFile(basePath, ["proof-pack.json", "proof_pack.json"]),
     ]);
 
+    // On static deployments (e.g. Vercel, GitHub Pages) without live local backend,
+    // automatically fall back to the verified hero snapshot if session is absent.
+    let resolvedSource = currentSource;
+    if (!contractRes.data && !packRes.data && currentSource === "session") {
+      basePath = "/demo/session-snapshot";
+      resolvedSource = "snapshot";
+      [contractRes, advRes, repairRes, verifRes, packRes] = await Promise.all([
+        fetchArtifactFile(basePath, ["change-contract.json", "change_contract.json"]),
+        fetchArtifactFile(basePath, ["adversarial-report.json", "adversarial_report.json"]),
+        fetchArtifactFile(basePath, ["repair-log.json", "repair_log.json"]),
+        fetchArtifactFile(basePath, ["verification-evidence.json", "verification_evidence.json"]),
+        fetchArtifactFile(basePath, ["proof-pack.json", "proof_pack.json"]),
+      ]);
+    }
+
     return {
-      source: currentSource,
+      source: resolvedSource,
       source_dir: basePath.replace(/^\//, ""),
       artifacts: {
         change_contract: contractRes.data,
