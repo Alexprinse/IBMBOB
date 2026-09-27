@@ -1,0 +1,202 @@
+{
+  "evidence_id": "ve-s01-001",
+  "contract_id": "cc-s01-001",
+  "scenario_id": "s01",
+  "collected_at": "2026-09-27T13:57:18.416524+00:00",
+  "pytest": {
+    "exit_code": 0,
+    "tests_total": 27,
+    "tests_passed": 27,
+    "tests_failed": 0,
+    "tests_errors": 0,
+    "tests_skipped": 0,
+    "duration_seconds": 0.29488301277160645,
+    "results": [
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_list_products_empty",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_get_product_not_found",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_checkout_no_coupon_http",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_checkout_percentage_coupon_http",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_checkout_fixed_coupon_http",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_checkout_coupon_not_found_returns_400",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_checkout_product_not_found_returns_400",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_checkout_insufficient_stock_returns_400",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_get_coupon_http",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_get_coupon_not_found_http",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_api.py::test_checkout_returns_order_id",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_checkout_no_coupon",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_checkout_percentage_coupon",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_checkout_fixed_coupon",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_coupon_not_found_raises",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_product_not_found_raises",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_insufficient_stock_raises",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_coupon_use_count_incremented",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_stock_reduced_after_checkout",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_checkout.py::test_case_insensitive_coupon_code",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_invariants.py::test_payment_never_negative_when_coupon_exceeds_subtotal",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_invariants.py::test_payment_never_negative_100pct_equivalent",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_cannot_be_applied_to_empty_cart",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_lookup_uppercase",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_lookup_lowercase",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_lookup_mixed_case",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      },
+      {
+        "node_id": "checkoutlab/tests/test_invariants.py::test_percentage_coupon_over_100_does_not_produce_negative_total",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "failure_message": null
+      }
+    ],
+    "raw_summary": "27 passed in 27 total"
+  },
+  "mypy": {
+    "exit_code": 0,
+    "error_count": 0,
+    "errors": [],
+    "raw_output": "Success: no issues found in 30 source files"
+  },
+  "ruff": {
+    "exit_code": 0,
+    "violation_count": 0,
+    "violations": [],
+    "raw_output": "[]"
+  },
+  "git_diff": {
+    "changed_files": [
+      "proofloop/cli.py",
+      "proofloop/tests/test_schemas.py",
+      "proofloop/verifiers/mypy_runner.py",
+      "proofloop/verifiers/pytest_runner.py",
+      "proofloop/verifiers/ruff_runner.py"
+    ],
+    "diff_stat": "proofloop/cli.py                     | 89 +++++++++++++++++++++++++++++++++++-\n proofloop/tests/test_schemas.py      | 31 +++++++++++++\n proofloop/verifiers/mypy_runner.py   |  3 +-\n proofloop/verifiers/pytest_runner.py |  8 ++--\n proofloop/verifiers/ruff_runner.py   |  3 +-\n 5 files changed, 128 insertions(+), 6 deletions(-)"
+  }
+}

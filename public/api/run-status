@@ -1,0 +1,15 @@
+{
+  "is_running": false,
+  "stage": "complete",
+  "message": "Verified S01 Proof Pack (Demo Snapshot)",
+  "details": {
+    "pack_id": "pp-s01-001",
+    "final_status": "VERIFIED"
+  },
+  "started_at": null,
+  "completed_at": null,
+  "error": null,
+  "result": {
+    "final_status": "VERIFIED"
+  }
+}

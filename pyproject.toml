@@ -64,6 +64,4 @@ ignore = [
 where = ["."]
 include = ["proofloop*", "checkoutlab*"]
 
-[tool.vercel]
-entrypoint = "checkoutlab.app.main:app"
 
