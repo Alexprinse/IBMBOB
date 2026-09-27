@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from checkoutlab.app.models import Base
 
+DATABASE_URL = "sqlite:///./checkoutlab.db"
 if os.environ.get("VERCEL"):
     DATABASE_URL = f"sqlite:///{tempfile.gettempdir()}/checkoutlab.db"
 else:
