@@ -331,3 +331,34 @@ def test_proof_pack_status_incomplete_beats_open_critical() -> None:
     repair = _make_repair_log()
     status = ProofPack.compute_status(None, report, repair)
     assert status == ProofPackStatus.incomplete
+
+
+# ── Benchmark Scenarios Validation ─────────────────────────────────────────────
+
+def test_all_benchmark_scenarios_validate() -> None:
+    """Verify that S01-S05 scenario definitions all satisfy the ChangeContract schema."""
+    from pathlib import Path
+
+    scenarios_dir = Path("benchmark") / "scenarios"
+    scenario_files = sorted(scenarios_dir.glob("s*.json"))
+    expected_ids = {"s01", "s02", "s03", "s04", "s05"}
+
+    found_ids = set()
+    for s_file in scenario_files:
+        content = s_file.read_text(encoding="utf-8")
+        contract = ChangeContract.model_validate_json(content)
+        found_ids.add(contract.scenario_id)
+
+        assert contract.contract_id.startswith("cc-")
+        assert len(contract.functional_requirements) >= 3
+        assert len(contract.invariants) >= 2
+        # Every scenario must have at least one critical invariant
+        assert any(inv.severity == Severity.critical for inv in contract.invariants)
+        assert contract.estimated_regression_risk in (
+            RegressionRisk.low,
+            RegressionRisk.medium,
+            RegressionRisk.high,
+        )
+
+    assert expected_ids.issubset(found_ids)
+

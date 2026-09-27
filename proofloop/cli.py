@@ -12,10 +12,16 @@ Usage (from project root, with venv activated):
 from __future__ import annotations
 
 import json
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
+
+# Ensure repository root is in sys.path when run directly as script
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 app = typer.Typer(
     name="proofloop",
@@ -204,7 +210,7 @@ def proof_pack_cmd() -> None:
 
     typer.echo(">> Assembling Proof Pack...")
     try:
-        from proofloop.assembler import AssemblerError, assemble_proof_pack
+        from proofloop.assembler import assemble_proof_pack
         from proofloop.schemas.proof_pack import ProofPackStatus
 
         pack = assemble_proof_pack()
@@ -294,6 +300,161 @@ def reset() -> None:
     for f in artifacts:
         f.unlink()
     typer.echo(f"[OK] Cleared {len(artifacts)} artifact(s).")
+
+
+# ── load-scenario command ──────────────────────────────────────────────────────
+
+@app.command("load-scenario")
+def load_scenario(
+    scenario: str = typer.Argument(
+        ..., help="Scenario ID (e.g. s01, s02, s03, s04, s05) or path to JSON file"
+    ),
+) -> None:
+    """Load a benchmark scenario into the session Change Contract."""
+    _ensure_session_dir()
+    from proofloop.schemas.change_contract import ChangeContract
+
+    target_path = Path(scenario)
+    if not target_path.is_file():
+        # Try finding in benchmark/scenarios/
+        scenarios_dir = Path("benchmark") / "scenarios"
+        matched = list(scenarios_dir.glob(f"{scenario.lower()}*.json"))
+        if not matched:
+            matched = list(scenarios_dir.glob(f"*{scenario.lower()}*.json"))
+        if matched:
+            target_path = matched[0]
+        else:
+            typer.echo(f"[ERROR] Scenario file not found: {scenario}", err=True)
+            raise typer.Exit(1)
+
+    try:
+        content = target_path.read_text(encoding="utf-8-sig")
+        contract = ChangeContract.model_validate_json(content)
+    except Exception as exc:  # noqa: BLE001
+        typer.echo(f"[ERROR] Failed to validate scenario contract: {exc}", err=True)
+        raise typer.Exit(1) from exc
+
+    # Write to session change-contract.json
+    CONTRACT_FILE.write_text(contract.model_dump_json(indent=2), encoding="utf-8")
+    typer.echo(f"[OK] Loaded scenario '{contract.scenario_id}' into {CONTRACT_FILE}")
+    typer.echo(f"  Contract ID : {contract.contract_id}")
+    typer.echo(f"  Request     : {contract.request_normalized}")
+    typer.echo(f"  Invariants  : {len(contract.invariants)} invariant(s)")
+    for inv in contract.invariants:
+        typer.echo(f"    - [{inv.severity.value.upper()}] {inv.id}: {inv.description}")
+
+
+# ── benchmark command ──────────────────────────────────────────────────────────
+
+@app.command("benchmark")
+def benchmark_cmd() -> None:
+    """List all benchmark scenarios and their verification status."""
+    from proofloop.schemas.change_contract import ChangeContract
+
+    scenarios_dir = Path("benchmark") / "scenarios"
+    if not scenarios_dir.is_dir():
+        typer.echo("Benchmark directory not found.")
+        return
+
+    scenario_files = sorted(scenarios_dir.glob("s*.json"))
+    if not scenario_files:
+        typer.echo("No benchmark scenarios found.")
+        return
+
+    typer.echo("\n-- ProofLoop Benchmark Matrix ---------------------------------------")
+    typer.echo("  Scenario  ID          Invariants  Status")
+    typer.echo("  --------  ----------  ----------  ---------------------------------")
+
+    for f in scenario_files:
+        try:
+            c = ChangeContract.model_validate_json(f.read_text(encoding="utf-8-sig"))
+            # S01 has real completed evidence in snapshot
+            if c.scenario_id == "s01":
+                status_str = "VERIFIED (Hero Demo Snapshot)"
+            else:
+                status_str = "NOT RUN"
+            sid = c.scenario_id.upper()
+            cid = c.contract_id
+            inv_count = len(c.invariants)
+            typer.echo(f"  {sid:8}  {cid:10}  {inv_count:10}  {status_str}")
+        except Exception:  # noqa: BLE001
+            typer.echo(f"  {f.stem[:8]:8}  [parse error]")
+
+    typer.echo("---------------------------------------------------------------------\n")
+
+
+# ── demo command ───────────────────────────────────────────────────────────────
+
+@app.command("demo")
+def demo_cmd(
+    delay: float = typer.Option(
+        1.8, "--delay", "-d", help="Pacing delay in seconds between stages"
+    ),
+    step: bool = typer.Option(
+        False, "--step", "-s", help="Wait for [Enter] key between stages (interactive mode)"
+    ),
+) -> None:
+    """Execute the authentic S01 workflow live for hackathon presentations."""
+    from proofloop.runner import run_s01_live
+
+    typer.echo("\n" + "=" * 68)
+    typer.echo("  ProofLoop — Live Presentation Runner (IBM Bob 2.0)")
+    typer.echo("  Hero Scenario: S01 Promotional Coupon Support")
+    typer.echo("=" * 68)
+
+    stage_names = {
+        "init": "CLEANUP",
+        "contract": "STAGE 1: PROOFLOOP MODE",
+        "contract_ready": "CONTRACT LOCKED",
+        "challenge": "STAGE 2: ADVERSARIAL MODE",
+        "challenge_uncovered": "DEFECT DISCOVERED",
+        "repair": "STAGE 3: REPAIR CYCLE",
+        "repair_complete": "REPAIR VERIFIED",
+        "verify": "STAGE 4: VERIFIER MODE",
+        "verify_complete": "TOOLS COMPLETED",
+        "proof_pack": "STAGE 5: PROOF PACK",
+        "complete": "FINAL VERDICT",
+    }
+
+    def on_progress(stage: str, details: dict) -> None:
+        title = stage_names.get(stage, stage.upper())
+        msg = details.get("message", "")
+
+        if stage in ("contract", "challenge", "repair", "verify", "proof_pack"):
+            typer.echo(f"\n>> [{title}] {msg}")
+            if step:
+                typer.prompt("   Press [Enter] to execute stage", default="", show_default=False)
+        elif stage == "contract_ready":
+            typer.echo(f"   Contract ID: {details.get('contract_id')}")
+            typer.echo(f"   Invariants : {details.get('invariants_count')} enforced")
+        elif stage == "challenge_uncovered":
+            typer.echo("   [!] INVARIANT VIOLATION DETECTED by Adversarial Agent:")
+            typer.echo(f"       Calculation: {details.get('calculation')}")
+            inv_str = details.get("invariant")
+            typer.echo(f"       Invariant  : {inv_str} (payment must never be negative)")
+        elif stage == "repair_complete":
+            typer.echo(f"   [OK] Floor Guard Applied: {details.get('guard')}")
+            typer.echo("   [OK] Invariant regression suite passes.")
+        elif stage == "verify_complete":
+            py_pass = details.get("pytest_passed")
+            py_ex = details.get("pytest_exit")
+            my_err = details.get("mypy_errors")
+            my_ex = details.get("mypy_exit")
+            rf_viol = details.get("ruff_violations")
+            rf_ex = details.get("ruff_exit")
+            typer.echo(f"   [OK] pytest: {py_pass} passed (exit {py_ex})")
+            typer.echo(f"   [OK] mypy  : {my_err} errors (exit {my_ex})")
+            typer.echo(f"   [OK] ruff  : {rf_viol} violations (exit {rf_ex})")
+        elif stage == "complete":
+            typer.echo("\n" + "=" * 68)
+            typer.echo(f"  FINAL PROOF PACK STATUS: {details.get('final_status')}")
+            typer.echo(f"  Traceable Items        : {details.get('evidence_count')}")
+            typer.echo(f"  Conclusion             : {details.get('conclusion')}")
+            typer.echo("=" * 68 + "\n")
+
+    actual_delay = 0.0 if step else delay
+    result = run_s01_live(stage_delay=actual_delay, progress_callback=on_progress)
+    typer.echo(f"[OK] Live presentation completed with status: {result.get('final_status')}\n")
 
 
 # ── entry point ────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -21,7 +22,7 @@ def run_pytest(test_paths: list[str] | None = None) -> PytestEvidence:
     report_file.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
-        "python", "-m", "pytest",
+        sys.executable, "-m", "pytest",
         *paths,
         "-v",
         "--tb=short",
@@ -136,8 +137,9 @@ def _extract_failure(test_data: dict) -> str | None:  # type: ignore[type-arg]
         longrepr = call.get("longrepr", "")
         if isinstance(longrepr, dict):
             crash = longrepr.get("reprcrash", {})
-            message: str = crash.get("message", str(longrepr)) if isinstance(crash, dict) else str(longrepr)
-            return message
+            if isinstance(crash, dict):
+                return str(crash.get("message", str(longrepr)))
+            return str(longrepr)
         return str(longrepr)
     return None
 

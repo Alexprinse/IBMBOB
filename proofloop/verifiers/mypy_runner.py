@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 
 from proofloop.schemas.verification_evidence import MypyEvidence
 
@@ -10,7 +11,7 @@ def run_mypy(paths: list[str] | None = None) -> MypyEvidence:
     """Run mypy on the given paths and return structured evidence."""
     check_paths = paths or ["proofloop", "checkoutlab"]
 
-    cmd = ["python", "-m", "mypy", *check_paths, "--ignore-missing-imports"]
+    cmd = [sys.executable, "-m", "mypy", *check_paths, "--ignore-missing-imports"]
 
     proc = subprocess.run(  # noqa: S603
         cmd,

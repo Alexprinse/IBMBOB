@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from typing import Any
 
 from proofloop.schemas.verification_evidence import RuffEvidence
@@ -13,7 +14,7 @@ def run_ruff(paths: list[str] | None = None) -> RuffEvidence:
     check_paths = paths or ["proofloop", "checkoutlab"]
 
     cmd = [
-        "python", "-m", "ruff", "check",
+        sys.executable, "-m", "ruff", "check",
         *check_paths,
         "--output-format=json",
     ]

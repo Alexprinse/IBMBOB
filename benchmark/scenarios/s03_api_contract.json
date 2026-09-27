@@ -1,0 +1,97 @@
+{
+  "contract_id": "cc-s03-001",
+  "created_at": "2025-01-01T00:00:00Z",
+  "scenario_id": "s03",
+  "request_raw": "Refactor checkout API response schema to standardize naming across services: rename 'total' to 'order_total', replace 'items' line items with nested 'order_items', and add tax breakdown object.",
+  "request_normalized": "Standardize checkout response schema while maintaining backward compatibility for existing client consumers.",
+  "intended_behavior": [
+    "Checkout response schema exposes standardized fields 'order_total' and 'order_items'",
+    "Existing consumers expecting 'total' and 'items' continue to receive valid responses without runtime deserialization errors",
+    "OpenAPI specification defines deprecated aliases with sunset headers or compatible schema serialization",
+    "Tax breakdown object is added with subtotal, tax_amount, and grand_total"
+  ],
+  "functional_requirements": [
+    {
+      "id": "req-01",
+      "description": "CheckoutResponse schema includes 'order_total' Decimal field matching the final charged amount",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-02",
+      "description": "CheckoutResponse schema includes 'order_items' list of items",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-03",
+      "description": "CheckoutResponse schema maintains backward compatibility aliases for 'total' and 'items'",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-04",
+      "description": "Tax breakdown object provides tax_rate and tax_amount fields in response",
+      "priority": "should_have"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "inv-01",
+      "description": "Existing supported API consumers must continue to receive the required contract. Existing client payloads expecting 'total' and 'items' must not fail deserialization.",
+      "severity": "critical"
+    },
+    {
+      "id": "inv-02",
+      "description": "Response HTTP status code and error schema contracts for 400 Bad Request must remain unchanged.",
+      "severity": "high"
+    },
+    {
+      "id": "inv-03",
+      "description": "Renamed fields must have identical mathematical values to legacy fields (order_total == total).",
+      "severity": "critical"
+    }
+  ],
+  "affected_components": [
+    "checkoutlab/app/schemas.py",
+    "checkoutlab/app/main.py",
+    "checkoutlab/tests/test_api.py",
+    "checkoutlab/tests/test_api_contract.py"
+  ],
+  "api_implications": [
+    "POST /checkout response schema modified: adds order_total, order_items, tax; aliases total, items",
+    "OpenAPI /docs spec schema update"
+  ],
+  "data_schema_implications": [
+    "None (presentation layer transformation in Pydantic schema)"
+  ],
+  "security_concerns": [
+    "Field renaming must not expose internal database column names or internal pricing calculation details"
+  ],
+  "required_evidence": {
+    "functional_tests": [
+      "test_checkout_response_has_order_total",
+      "test_checkout_response_has_tax_breakdown"
+    ],
+    "invariant_checks": [
+      "test_legacy_api_consumer_contract_backward_compatibility",
+      "test_order_total_equals_legacy_total"
+    ],
+    "type_check": [
+      "mypy proofloop/ checkoutlab/ --ignore-missing-imports"
+    ],
+    "lint": [
+      "ruff check proofloop/ checkoutlab/"
+    ],
+    "api_compatibility": [
+      "python proofloop/verifiers/api_compat.py"
+    ],
+    "regression_tests": [
+      "test_checkout_no_coupon_http"
+    ]
+  },
+  "estimated_regression_risk": "high",
+  "rollback_requirements": [
+    "Restore original field names in CheckoutResponse schema",
+    "Remove Pydantic alias configuration"
+  ],
+  "notes": "S03 secondary benchmark scenario: API Contract Break. Seeded defect: Developer renames 'total' to 'order_total' and drops 'total' completely without Pydantic field alias or serialization alias, breaking all v1 mobile and web consumers. Expected adversarial concern: Bob identifies breaking change to public API contract (inv-01). Expected verification behavior: FAILED on legacy consumer compatibility test; VERIFIED once field aliasing (validation_alias / serialization_alias) is restored."
+}
+

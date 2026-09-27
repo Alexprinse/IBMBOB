@@ -1,0 +1,103 @@
+{
+  "contract_id": "cc-s02-001",
+  "created_at": "2025-01-01T00:00:00Z",
+  "scenario_id": "s02",
+  "request_raw": "Add retry logic with exponential backoff to payment processing so transient payment gateway timeouts or network glitches do not fail customer checkouts immediately.",
+  "request_normalized": "Implement automated payment processing retry on transient network errors while guaranteeing idempotent execution with idempotency keys.",
+  "intended_behavior": [
+    "Transient network and gateway timeout errors during payment charging trigger up to 3 automated retries with exponential backoff",
+    "Each checkout transaction generates or accepts a unique idempotency_key to prevent duplicate charges",
+    "Retried payment requests with the same idempotency_key return the original authorization without charging the customer again",
+    "Non-retryable gateway errors (such as card declined or insufficient funds) fail immediately without retrying",
+    "Order status transitions to completed only after a single successful charge confirmation"
+  ],
+  "functional_requirements": [
+    {
+      "id": "req-01",
+      "description": "Checkout endpoint accepts an optional Idempotency-Key header or generates a deterministic UUID per checkout session",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-02",
+      "description": "Payment service client retries on transient HTTP 503 or timeout exceptions up to max_retries (default: 3)",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-03",
+      "description": "Payment service client stops retrying and propagates failure immediately on 4xx client errors (e.g. card declined)",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-04",
+      "description": "Payment idempotency records are stored with the idempotency key, charge ID, and timestamp",
+      "priority": "should_have"
+    },
+    {
+      "id": "req-05",
+      "description": "Subsequent requests with an already-completed idempotency key return the cached charge result without re-executing charge()",
+      "priority": "must_have"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "inv-01",
+      "description": "A retry of the same idempotent payment request must not create a duplicate charge. Exactly one charge transaction must be posted for a given idempotency key regardless of network retries.",
+      "severity": "critical"
+    },
+    {
+      "id": "inv-02",
+      "description": "Payment retry backoff duration must not exceed maximum checkout request timeout (30 seconds total elapsed).",
+      "severity": "high"
+    },
+    {
+      "id": "inv-03",
+      "description": "Failed transactions that exhaust all retry attempts must leave the order in 'failed' status and must not increment stock reservation.",
+      "severity": "high"
+    }
+  ],
+  "affected_components": [
+    "checkoutlab/app/services/payment.py",
+    "checkoutlab/app/services/checkout.py",
+    "checkoutlab/app/models.py",
+    "checkoutlab/tests/test_payment_retry.py"
+  ],
+  "api_implications": [
+    "POST /checkout accepts optional 'Idempotency-Key' HTTP header",
+    "Payment response returns transaction_id and idempotency_key"
+  ],
+  "data_schema_implications": [
+    "New PaymentTransaction table or idempotency_key column on Order table with unique constraint"
+  ],
+  "security_concerns": [
+    "Idempotency keys must be scoped to customer/session to prevent cross-account replay attacks",
+    "Key collision handling must reject conflicting payloads for the same idempotency key"
+  ],
+  "required_evidence": {
+    "functional_tests": [
+      "test_payment_retried_on_gateway_timeout",
+      "test_payment_not_retried_on_card_declined",
+      "test_duplicate_request_returns_cached_result"
+    ],
+    "invariant_checks": [
+      "test_payment_retry_does_not_create_duplicate_charge"
+    ],
+    "type_check": [
+      "mypy proofloop/ checkoutlab/ --ignore-missing-imports"
+    ],
+    "lint": [
+      "ruff check proofloop/ checkoutlab/"
+    ],
+    "api_compatibility": [],
+    "security_check": [],
+    "regression_tests": [
+      "test_checkout_no_coupon"
+    ]
+  },
+  "estimated_regression_risk": "high",
+  "rollback_requirements": [
+    "Disable retry wrapper in payment service",
+    "Revert to synchronous single-shot charge"
+  ],
+  "notes": "S02 secondary benchmark scenario: Payment Retry & Idempotency. Seeded defect: Payment service client implements loop retries upon timeout, but fails to transmit or verify an idempotency key with the gateway, resulting in duplicate charges on delayed 200 responses. Expected adversarial concern: Bob identifies duplicate billing risk (inv-01). Expected verification behavior: FAILED initially on test_payment_retry_does_not_create_duplicate_charge; VERIFIED after adding idempotency key caching."
+}
+

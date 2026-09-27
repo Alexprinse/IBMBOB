@@ -1,0 +1,98 @@
+{
+  "contract_id": "cc-s05-001",
+  "created_at": "2025-01-01T00:00:00Z",
+  "scenario_id": "s05",
+  "request_raw": "Update the orders database schema to add a 'customer_notes' column and a 'delivery_instructions' field for order fulfillment, ensuring existing orders and running queries remain compatible.",
+  "request_normalized": "Apply database schema migration adding order delivery fields while maintaining non-breaking backward compatibility with existing stored records.",
+  "intended_behavior": [
+    "Orders table adds optional customer_notes (text, nullable) and delivery_instructions (text, nullable)",
+    "Existing database rows created prior to the migration deserialize and query cleanly without null constraint crashes",
+    "New checkout requests can supply or omit delivery fields without validation errors",
+    "Database downgrade / rollback script restores the previous schema state without catastrophic data loss"
+  ],
+  "functional_requirements": [
+    {
+      "id": "req-01",
+      "description": "Order model includes customer_notes: str | None with nullable=True",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-02",
+      "description": "Order model includes delivery_instructions: str | None with nullable=True",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-03",
+      "description": "CheckoutRequest accepts optional customer_notes and delivery_instructions",
+      "priority": "should_have"
+    },
+    {
+      "id": "req-04",
+      "description": "CheckoutResponse includes delivery fields if provided",
+      "priority": "should_have"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "inv-01",
+      "description": "The migration must preserve required application and data compatibility. Migrations must not add non-nullable columns without defaults to tables with existing records.",
+      "severity": "critical"
+    },
+    {
+      "id": "inv-02",
+      "description": "Queries selecting existing orders must not fail after schema migration is applied.",
+      "severity": "critical"
+    },
+    {
+      "id": "inv-03",
+      "description": "Database rollback must cleanly revert the schema without locking or corrupting order tables.",
+      "severity": "high"
+    }
+  ],
+  "affected_components": [
+    "checkoutlab/app/models.py",
+    "checkoutlab/app/schemas.py",
+    "checkoutlab/app/database.py",
+    "checkoutlab/tests/test_migration_compat.py"
+  ],
+  "api_implications": [
+    "POST /checkout request schema gains optional customer_notes: str | null",
+    "POST /checkout request schema gains optional delivery_instructions: str | null"
+  ],
+  "data_schema_implications": [
+    "ALTER TABLE orders ADD COLUMN customer_notes TEXT NULL",
+    "ALTER TABLE orders ADD COLUMN delivery_instructions TEXT NULL"
+  ],
+  "security_concerns": [
+    "Customer notes must be sanitized against cross-site scripting (XSS) when rendered in admin dashboards",
+    "SQL DDL statements must be executed through parameterized migration engine (no raw string formatting)"
+  ],
+  "required_evidence": {
+    "functional_tests": [
+      "test_order_created_with_delivery_instructions",
+      "test_order_created_without_delivery_instructions"
+    ],
+    "invariant_checks": [
+      "test_migration_preserves_existing_order_record_compatibility",
+      "test_migration_does_not_break_existing_table_queries"
+    ],
+    "type_check": [
+      "mypy proofloop/ checkoutlab/ --ignore-missing-imports"
+    ],
+    "lint": [
+      "ruff check proofloop/ checkoutlab/"
+    ],
+    "api_compatibility": [],
+    "security_check": [],
+    "regression_tests": [
+      "test_checkout_no_coupon"
+    ]
+  },
+  "estimated_regression_risk": "medium",
+  "rollback_requirements": [
+    "Run migration downgrade to drop new columns",
+    "Remove new fields from SQLAlchemy Order model"
+  ],
+  "notes": "S05 secondary benchmark scenario: Schema Migration Compatibility. Seeded defect: Migration defines new column as nullable=False with no default value on an existing table with records, causing SQLite/PostgreSQL operational errors on existing rows and breaking older application instances. Expected adversarial concern: Bob identifies schema migration incompatibility with existing data (inv-01). Expected verification behavior: FAILED on test_migration_preserves_existing_order_record_compatibility; VERIFIED when column is marked nullable=True with safe defaults."
+}
+

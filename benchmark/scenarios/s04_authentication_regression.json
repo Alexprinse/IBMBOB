@@ -1,0 +1,102 @@
+{
+  "contract_id": "cc-s04-001",
+  "created_at": "2025-01-01T00:00:00Z",
+  "scenario_id": "s04",
+  "request_raw": "Add customer account security: protect order lookup and checkout history endpoints so customers can only view their own orders using an Authorization bearer token or API key.",
+  "request_normalized": "Enforce authentication and tenant authorization on order retrieval and management endpoints.",
+  "intended_behavior": [
+    "GET /orders/{order_id} requires a valid authentication credential",
+    "Requests with missing or invalid credentials return HTTP 401 Unauthorized",
+    "Requests attempting to access another customer's order return HTTP 403 Forbidden",
+    "Public health check and catalog browsing endpoints remain publicly accessible",
+    "Authenticated customer context is propagated to the checkout transaction"
+  ],
+  "functional_requirements": [
+    {
+      "id": "req-01",
+      "description": "Order lookup endpoint requires HTTP Authorization header with valid Bearer token or API key",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-02",
+      "description": "Missing or malformed authorization credentials return HTTP 401 with detail 'unauthorized'",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-03",
+      "description": "Valid token for user A attempting to fetch user B's order returns HTTP 403 with detail 'forbidden'",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-04",
+      "description": "Public product catalog GET /products endpoints continue to allow unauthenticated access",
+      "priority": "must_have"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "inv-01",
+      "description": "Protected resources must remain protected. An endpoint that previously or intended to require authentication must never become publicly accessible without authentication.",
+      "severity": "critical"
+    },
+    {
+      "id": "inv-02",
+      "description": "Customer data isolation: Customer A must never be able to view or modify customer B's order records.",
+      "severity": "critical"
+    },
+    {
+      "id": "inv-03",
+      "description": "System health check (/health) must remain accessible without credentials to prevent load balancer cascading failures.",
+      "severity": "high"
+    }
+  ],
+  "affected_components": [
+    "checkoutlab/app/main.py",
+    "checkoutlab/app/services/auth.py",
+    "checkoutlab/app/schemas.py",
+    "checkoutlab/tests/test_auth.py",
+    "checkoutlab/tests/test_api.py"
+  ],
+  "api_implications": [
+    "GET /orders/{order_id} requires Authorization header",
+    "New 401 and 403 error response schemas"
+  ],
+  "data_schema_implications": [
+    "Order table gains customer_id foreign key or string reference"
+  ],
+  "security_concerns": [
+    "Authorization bypass via route path traversal or missing FastAPI Depends(get_current_user)",
+    "Timing attacks on API token comparison"
+  ],
+  "required_evidence": {
+    "functional_tests": [
+      "test_authenticated_order_lookup_success",
+      "test_missing_auth_returns_401",
+      "test_cross_tenant_order_lookup_returns_403"
+    ],
+    "invariant_checks": [
+      "test_protected_endpoints_cannot_be_accessed_without_auth",
+      "test_health_endpoint_remains_public"
+    ],
+    "type_check": [
+      "mypy proofloop/ checkoutlab/ --ignore-missing-imports"
+    ],
+    "lint": [
+      "ruff check proofloop/ checkoutlab/"
+    ],
+    "api_compatibility": [],
+    "security_check": [
+      "test_order_id_enumeration_prevented"
+    ],
+    "regression_tests": [
+      "test_list_products_empty"
+    ]
+  },
+  "estimated_regression_risk": "high",
+  "rollback_requirements": [
+    "Remove auth dependency from order router",
+    "Revert Order schema customer_id constraint"
+  ],
+  "notes": "S04 secondary benchmark scenario: Authentication Security Regression. Seeded defect: Developer creates authentication dependency but forgets to attach Depends(get_current_user) to the GET /orders/{order_id} route, leaving customer order details publicly exposed by ID enumeration. Expected adversarial concern: Bob identifies unauthenticated sensitive resource exposure (inv-01). Expected verification behavior: FAILED on test_protected_endpoints_cannot_be_accessed_without_auth; VERIFIED after attaching authentication dependency."
+}
+

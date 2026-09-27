@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProofLoop — Evidence-Backed Developer Workflow Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%230f172a'/><path d='M30 52 L43 65 L70 38' stroke='white' stroke-width='10' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>ProofLoop</h1>
+          <span class="sub-brand">Evidence-Backed Developer Workflow · IBM Bob 2.0</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Session Reset Button -->
+        <button id="resetBtn" class="btn-reset" title="Clear session artifacts to re-run from scratch">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          Reset
+        </button>
+
+        <!-- Source Selector -->
+        <div class="source-selector">
+          <label for="sourceSelect">Source:</label>
+          <select id="sourceSelect">
+            <option value="session">Live Session (.proofloop/session)</option>
+            <option value="snapshot">Demo Snapshot (S01 Verified)</option>
+          </select>
+        </div>
+
+        <!-- Manual Refresh Button -->
+        <button id="refreshBtn" class="btn-refresh" title="Fetch latest session artifacts">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Refresh
+        </button>
+
+        <!-- Polling Indicator -->
+        <div class="poll-status" id="pollStatus" title="Polling session artifacts every 2 seconds">
+          <span class="pulse-dot" id="pulseDot"></span>
+          <span class="poll-text" id="pollText">Live (2s)</span>
+        </div>
+
+        <!-- Final Status Badge in Header -->
+        <div class="final-badge-container">
+          <span id="headerFinalBadge" class="status-badge badge-incomplete">INCOMPLETE</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Workflow Ribbon (Pipeline Visualization) -->
+    <nav class="workflow-ribbon" aria-label="ProofLoop Pipeline Stages">
+      <div class="pipeline-step" id="step-intent" data-step="1">
+        <div class="step-icon">1</div>
+        <div class="step-meta">
+          <span class="step-name">Intent</span>
+          <span class="step-status">Developer Prompt</span>
+        </div>
+      </div>
+      <div class="pipeline-connector" id="conn-1"></div>
+
+      <div class="pipeline-step" id="step-contract" data-step="2">
+        <div class="step-icon">2</div>
+        <div class="step-meta">
+          <span class="step-name">Contract</span>
+          <span class="step-status">Change Contract</span>
+        </div>
+      </div>
+      <div class="pipeline-connector" id="conn-2"></div>
+
+      <div class="pipeline-step" id="step-implement" data-step="3">
+        <div class="step-icon">3</div>
+        <div class="step-meta">
+          <span class="step-name">Implement</span>
+          <span class="step-status">CheckoutLab Code</span>
+        </div>
+      </div>
+      <div class="pipeline-connector" id="conn-3"></div>
+
+      <div class="pipeline-step" id="step-challenge" data-step="4">
+        <div class="step-icon">4</div>
+        <div class="step-meta">
+          <span class="step-name">Challenge</span>
+          <span class="step-status">Adversarial Hunter</span>
+        </div>
+      </div>
+      <div class="pipeline-connector" id="conn-4"></div>
+
+      <div class="pipeline-step" id="step-repair" data-step="5">
+        <div class="step-icon">5</div>
+        <div class="step-meta">
+          <span class="step-name">Repair</span>
+          <span class="step-status">Fix & Invariant Test</span>
+        </div>
+      </div>
+      <div class="pipeline-connector" id="conn-5"></div>
+
+      <div class="pipeline-step" id="step-verify" data-step="6">
+        <div class="step-icon">6</div>
+        <div class="step-meta">
+          <span class="step-name">Verify</span>
+          <span class="step-status">Deterministic Tools</span>
+        </div>
+      </div>
+      <div class="pipeline-connector" id="conn-6"></div>
+
+      <div class="pipeline-step" id="step-proof" data-step="7">
+        <div class="step-icon">7</div>
+        <div class="step-meta">
+          <span class="step-name">Proof Pack</span>
+          <span class="step-status">Evidence Artifact</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Source Banner / Status Ribbon -->
+    <div id="sourceBanner" class="source-banner">
+      <span class="source-tag" id="sourceTag">LIVE SESSION</span>
+      <span class="source-info" id="sourceInfo">Reading artifacts from <code>.proofloop/session/</code></span>
+      <span class="source-time" id="sourceTime">Last updated: Just now</span>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-main">
+
+      <!-- SECTION 1: HERO EXPERIENCE - ADVERSARIAL FINDING -->
+      <section class="dashboard-section hero-section" id="section-adversarial">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-number">Hero Finding · S01</span>
+            <h2>Adversarial Verification — Hunt for Invariant Violations</h2>
+          </div>
+          <div class="section-badge-group">
+            <span class="evidence-pill pill-reasoning">LLM REASONING</span>
+            <span id="advStatusBadge" class="status-badge badge-neutral">AWAITING EVIDENCE</span>
+          </div>
+        </div>
+
+        <div id="adversarialContent" class="section-body">
+          <div class="awaiting-evidence">
+            <div class="awaiting-icon">⏳</div>
+            <h3>Awaiting Adversarial Challenge</h3>
+            <p>Adversarial report (<code>adversarial-report.json</code>) has not yet been written to the session directory.</p>
+            <p class="awaiting-sub">Execute IBM Bob in <code>adversarial</code> mode or run the ProofLoop CLI.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: CHANGE CONTRACT -->
+      <section class="dashboard-section" id="section-contract">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-number">Stage 1</span>
+            <h2>Change Contract — Machine-Readable Specification</h2>
+          </div>
+          <div class="section-badge-group">
+            <span class="evidence-pill pill-contract">CONTRACT</span>
+            <span id="contractStatusBadge" class="status-badge badge-neutral">AWAITING EVIDENCE</span>
+          </div>
+        </div>
+
+        <div id="contractContent" class="section-body">
+          <div class="awaiting-evidence">
+            <div class="awaiting-icon">📄</div>
+            <h3>Awaiting Change Contract</h3>
+            <p>Change contract (<code>change-contract.json</code>) not found in <code>.proofloop/session/</code>.</p>
+            <p class="awaiting-sub">Initiate S01 or run Bob in <code>proofloop</code> mode to formulate the contract.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: REPAIR LOG -->
+      <section class="dashboard-section" id="section-repair">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-number">Stage 2</span>
+            <h2>Repair Log — Defect Remediation & Invariant Guard</h2>
+          </div>
+          <div class="section-badge-group">
+            <span class="evidence-pill pill-repair">REPAIR CYCLE</span>
+            <span id="repairStatusBadge" class="status-badge badge-neutral">AWAITING EVIDENCE</span>
+          </div>
+        </div>
+
+        <div id="repairContent" class="section-body">
+          <div class="awaiting-evidence">
+            <div class="awaiting-icon">🔧</div>
+            <h3>Awaiting Repair Log</h3>
+            <p>Repair log (<code>repair-log.json</code>) has not yet been recorded.</p>
+            <p class="awaiting-sub">Generated when an adversarial finding is remediated with an invariant floor guard.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: DETERMINISTIC VERIFICATION -->
+      <section class="dashboard-section" id="section-verification">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-number">Stage 3</span>
+            <h2>Deterministic Verification — Real Tool Output (Exit Codes)</h2>
+          </div>
+          <div class="section-badge-group">
+            <span class="evidence-pill pill-deterministic">DETERMINISTIC TOOLS</span>
+            <span id="verifStatusBadge" class="status-badge badge-neutral">AWAITING EVIDENCE</span>
+          </div>
+        </div>
+
+        <div class="deterministic-notice">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <span>
+            <strong>Deterministic Evidence Discipline:</strong> All numbers and outcomes in this section reflect actual tool process exit codes (<code>pytest</code>, <code>mypy</code>, <code>ruff</code>). Zero LLM simulation or paraphrasing.
+          </span>
+        </div>
+
+        <div id="verificationContent" class="section-body">
+          <div class="awaiting-evidence">
+            <div class="awaiting-icon">🧪</div>
+            <h3>Awaiting Verification Evidence</h3>
+            <p>Tool evidence (<code>verification-evidence.json</code>) not present in <code>.proofloop/session/</code>.</p>
+            <p class="awaiting-sub">Run <code>python proofloop/cli.py verify --all</code> to execute verification tools.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: PROOF PACK -->
+      <section class="dashboard-section final-pack-section" id="section-proofpack">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-number">Final Artifact</span>
+            <h2>Proof Pack — Traceable Evidence Audit</h2>
+          </div>
+          <div class="section-badge-group">
+            <span class="evidence-pill pill-artifact">ASSEMBLER ARTIFACT</span>
+            <span id="packFinalStatusBadge" class="status-badge badge-incomplete">INCOMPLETE</span>
+          </div>
+        </div>
+
+        <div id="proofPackContent" class="section-body">
+          <div class="awaiting-evidence">
+            <div class="awaiting-icon">📦</div>
+            <h3>Awaiting Proof Pack Assembly</h3>
+            <p>Proof Pack artifact (<code>proof-pack.json</code>) has not yet been assembled.</p>
+            <p class="awaiting-sub">Run <code>python proofloop/cli.py proof-pack</code> once deterministic verification passes.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: BENCHMARK SUITE MATRIX -->
+      <section class="dashboard-section" id="section-benchmarks">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-number">Generalization</span>
+            <h2>ProofLoop Benchmark Suite — Scenarios S01–S05</h2>
+          </div>
+          <div class="section-badge-group">
+            <span class="evidence-pill pill-artifact">5 SCENARIOS</span>
+            <span class="status-badge badge-neutral">S01 HERO ACTIVE</span>
+          </div>
+        </div>
+
+        <div class="evidence-table-container">
+          <table class="evidence-table">
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Category</th>
+                <th>Challenge / Seeded Defect</th>
+                <th>Critical Invariant</th>
+                <th>Verification Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong class="req-badge">S01 (Hero)</strong><br><span style="font-size: 0.76rem; color: var(--text-muted);">Coupon Support</span></td>
+                <td><span class="evidence-pill pill-reasoning">Financial Math</span></td>
+                <td>Discount exceeds subtotal ($50 &minus; $75 = -$25)</td>
+                <td><code>inv-01: Payment amount must never be negative</code></td>
+                <td><span id="matrixS01Status" class="status-badge badge-verified">VERIFIED</span></td>
+              </tr>
+              <tr>
+                <td><strong class="req-badge">S02</strong><br><span style="font-size: 0.76rem; color: var(--text-muted);">Payment Retry</span></td>
+                <td><span class="evidence-pill pill-reasoning">Distributed Tx</span></td>
+                <td>Network retries without idempotency keys cause duplicate charges</td>
+                <td><code>inv-01: Retry must not duplicate charge</code></td>
+                <td><span class="status-badge badge-incomplete">NOT RUN</span></td>
+              </tr>
+              <tr>
+                <td><strong class="req-badge">S03</strong><br><span style="font-size: 0.76rem; color: var(--text-muted);">API Contract Break</span></td>
+                <td><span class="evidence-pill pill-contract">API Contract</span></td>
+                <td>Field renamed ('total' &rarr; 'order_total') without backward-compatible alias</td>
+                <td><code>inv-01: Consumers receive required contract</code></td>
+                <td><span class="status-badge badge-incomplete">NOT RUN</span></td>
+              </tr>
+              <tr>
+                <td><strong class="req-badge">S04</strong><br><span style="font-size: 0.76rem; color: var(--text-muted);">Auth Regression</span></td>
+                <td><span class="evidence-pill pill-deterministic">Security & Auth</span></td>
+                <td>Protected order lookup endpoint missing route authorization dependency</td>
+                <td><code>inv-01: Protected resources remain protected</code></td>
+                <td><span class="status-badge badge-incomplete">NOT RUN</span></td>
+              </tr>
+              <tr>
+                <td><strong class="req-badge">S05</strong><br><span style="font-size: 0.76rem; color: var(--text-muted);">Schema Migration</span></td>
+                <td><span class="evidence-pill pill-repair">Data Persistence</span></td>
+                <td>Non-nullable column added without default value on existing records</td>
+                <td><code>inv-01: Migration preserves data compatibility</code></td>
+                <td><span class="status-badge badge-incomplete">NOT RUN</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SECTION 7: RAW ARTIFACT INSPECTOR -->
+      <section class="dashboard-section raw-inspector-section" id="section-raw">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-number">Auditing</span>
+            <h2>Session Artifact Inspector — Inspect Raw JSON Payloads</h2>
+          </div>
+          <span class="evidence-pill pill-inspect">READ-ONLY AUDIT</span>
+        </div>
+
+        <div class="raw-tabs">
+          <button class="raw-tab active" data-target="raw-contract">change-contract.json</button>
+          <button class="raw-tab" data-target="raw-adversarial">adversarial-report.json</button>
+          <button class="raw-tab" data-target="raw-repair">repair-log.json</button>
+          <button class="raw-tab" data-target="raw-verification">verification-evidence.json</button>
+          <button class="raw-tab" data-target="raw-proofpack">proof-pack.json</button>
+        </div>
+
+        <div class="raw-viewer-container">
+          <div class="raw-viewer-toolbar">
+            <span id="rawViewerFilename" class="raw-filename">change-contract.json</span>
+            <button id="copyRawBtn" class="btn-copy">Copy JSON</button>
+          </div>
+          <pre id="rawViewerPre"><code id="rawViewerCode" class="json-code">// Select an artifact above to inspect JSON</code></pre>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+      <div class="footer-left">
+        <span><strong>ProofLoop</strong> · Hackathon Demo Presentation Dashboard</span>
+      </div>
+      <div class="footer-right">
+        <span>Presentation / Observability Layer · Data Source: <code>.proofloop/session/</code></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

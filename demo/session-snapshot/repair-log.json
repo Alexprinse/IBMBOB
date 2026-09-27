@@ -1,0 +1,21 @@
+{
+  "log_id": "rl-s01-001",
+  "contract_id": "cc-s01-001",
+  "scenario_id": "s01",
+  "repairs": [
+    {
+      "repair_id": "rp-01",
+      "finding_id": "af-01",
+      "applied_at": "2026-09-27T13:43:14.099869Z",
+      "description": "Added floor guard max(Decimal('0.00'), subtotal - discount_amount) in process_checkout() and verified invariant regression suite in test_invariants.py.",
+      "files_modified": [
+        "checkoutlab/app/services/checkout.py",
+        "checkoutlab/tests/test_invariants.py"
+      ],
+      "status": "verified",
+      "post_repair_pytest_exit_code": 0,
+      "post_repair_mypy_exit_code": 0,
+      "notes": "test_payment_never_negative_when_coupon_exceeds_subtotal passes with $50 subtotal and $75 coupon, resulting in $0.00 total."
+    }
+  ]
+}

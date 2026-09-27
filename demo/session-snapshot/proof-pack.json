@@ -1,0 +1,500 @@
+{
+  "pack_id": "pp-s01-001",
+  "contract_id": "cc-s01-001",
+  "scenario_id": "s01",
+  "assembled_at": "2026-09-27T13:57:27.916283Z",
+  "final_status": "VERIFIED",
+  "change_contract": {
+    "contract_id": "cc-s01-001",
+    "created_at": "2025-01-01T00:00:00Z",
+    "scenario_id": "s01",
+    "request_raw": "Add promotional coupon support to checkout. Customers should be able to enter a coupon code at checkout and receive a percentage or fixed-amount discount on their order total.",
+    "request_normalized": "Add coupon code support to the checkout flow with percentage and fixed-amount discount types.",
+    "intended_behavior": [
+      "Checkout endpoint accepts an optional coupon_code field",
+      "A valid coupon reduces the order total by the configured discount amount",
+      "An invalid or expired coupon returns a 400 error with a clear message",
+      "The payment amount sent to the payment service is never negative",
+      "Coupon usage is recorded so single-use coupons cannot be reused"
+    ],
+    "functional_requirements": [
+      {
+        "id": "req-01",
+        "description": "Checkout endpoint accepts an optional coupon_code string in the request body",
+        "priority": "must_have"
+      },
+      {
+        "id": "req-02",
+        "description": "A PERCENTAGE coupon reduces the total by (discount_percent / 100) * subtotal",
+        "priority": "must_have"
+      },
+      {
+        "id": "req-03",
+        "description": "A FIXED coupon reduces the total by the fixed discount_amount",
+        "priority": "must_have"
+      },
+      {
+        "id": "req-04",
+        "description": "An unknown coupon_code returns HTTP 400 with error detail 'coupon_not_found'",
+        "priority": "must_have"
+      },
+      {
+        "id": "req-05",
+        "description": "An expired coupon (expires_at < now) returns HTTP 400 with error detail 'coupon_expired'",
+        "priority": "must_have"
+      },
+      {
+        "id": "req-06",
+        "description": "A single-use coupon that has already been used returns HTTP 400 with error detail 'coupon_already_used'",
+        "priority": "should_have"
+      },
+      {
+        "id": "req-07",
+        "description": "The response includes a discount_applied field showing the monetary discount",
+        "priority": "should_have"
+      }
+    ],
+    "invariants": [
+      {
+        "id": "inv-01",
+        "description": "The payment amount charged to the customer must never be negative. When a coupon discount exceeds the order subtotal, the payment amount must be floored at zero (0.00).",
+        "severity": "critical"
+      },
+      {
+        "id": "inv-02",
+        "description": "A coupon cannot be applied to an empty order (zero-item cart).",
+        "severity": "high"
+      },
+      {
+        "id": "inv-03",
+        "description": "Coupon codes are case-insensitive: 'SAVE10' and 'save10' refer to the same coupon.",
+        "severity": "medium"
+      }
+    ],
+    "affected_components": [
+      "checkoutlab/app/services/checkout.py",
+      "checkoutlab/app/models.py",
+      "checkoutlab/app/schemas.py",
+      "checkoutlab/app/main.py",
+      "checkoutlab/tests/test_checkout.py",
+      "checkoutlab/tests/test_invariants.py",
+      "checkoutlab/tests/test_api.py"
+    ],
+    "api_implications": [
+      "POST /checkout request schema gains optional coupon_code: str | null",
+      "POST /checkout response schema gains discount_applied: Decimal",
+      "New GET /coupons/{code} endpoint for coupon lookup (optional)"
+    ],
+    "data_schema_implications": [
+      "New Coupon table: id, code, discount_type (PERCENTAGE|FIXED), discount_value, expires_at, max_uses, use_count",
+      "CheckoutOrder table gains coupon_id FK (nullable)"
+    ],
+    "security_concerns": [
+      "Coupon codes must not leak internal DB IDs in error messages",
+      "Coupon lookup must use parameterised queries (no SQL injection)"
+    ],
+    "required_evidence": {
+      "functional_tests": [
+        "test_coupon_percentage_discount_applied",
+        "test_coupon_fixed_discount_applied",
+        "test_coupon_not_found_returns_400",
+        "test_coupon_expired_returns_400",
+        "test_no_coupon_checkout_unchanged"
+      ],
+      "invariant_checks": [
+        "test_payment_never_negative_when_coupon_exceeds_subtotal"
+      ],
+      "type_check": [
+        "mypy proofloop/ checkoutlab/ --ignore-missing-imports"
+      ],
+      "lint": [
+        "ruff check proofloop/ checkoutlab/"
+      ],
+      "api_compatibility": [],
+      "security_check": [],
+      "regression_tests": [
+        "test_checkout_without_coupon_still_works"
+      ]
+    },
+    "estimated_regression_risk": "medium",
+    "rollback_requirements": [
+      "Remove coupon_code field from CheckoutRequest schema",
+      "Remove Coupon model and migration",
+      "Remove discount logic from checkout service"
+    ],
+    "notes": "S01 hero scenario. The seeded defect is the absence of a floor guard in the discount calculation: final_total = subtotal - discount (missing max(0, ...) wrapper). The adversarial agent must catch this via inv-01."
+  },
+  "adversarial_report": {
+    "report_id": "ar-s01-001",
+    "contract_id": "cc-s01-001",
+    "created_at": "2026-09-27T13:43:14.099632Z",
+    "scenario_id": "s01",
+    "findings": [
+      {
+        "finding_id": "af-01",
+        "severity": "critical",
+        "category": "invariant_violation",
+        "description": "Payment amount can become negative when a coupon exceeds the order subtotal (Subtotal: $50, Coupon: $75, Result: -$25). Invariant violated: inv-01 (payment amount must never be negative).",
+        "evidence": "checkoutlab/app/services/checkout.py:110: final_total = subtotal - discount_amount does not floor at Decimal('0.00')",
+        "evidence_category": "llm_reasoning",
+        "suggested_repair": "Add max(Decimal('0.00'), subtotal - discount_amount) floor guard.",
+        "status": "resolved",
+        "resolved_by_repair_id": "rp-01"
+      }
+    ],
+    "summary": "1 critical invariant violation detected and resolved."
+  },
+  "repair_log": {
+    "log_id": "rl-s01-001",
+    "contract_id": "cc-s01-001",
+    "scenario_id": "s01",
+    "repairs": [
+      {
+        "repair_id": "rp-01",
+        "finding_id": "af-01",
+        "applied_at": "2026-09-27T13:43:14.099869Z",
+        "description": "Added floor guard max(Decimal('0.00'), subtotal - discount_amount) in process_checkout() and verified invariant regression suite in test_invariants.py.",
+        "files_modified": [
+          "checkoutlab/app/services/checkout.py",
+          "checkoutlab/tests/test_invariants.py"
+        ],
+        "status": "verified",
+        "post_repair_pytest_exit_code": 0,
+        "post_repair_mypy_exit_code": 0,
+        "notes": "test_payment_never_negative_when_coupon_exceeds_subtotal passes with $50 subtotal and $75 coupon, resulting in $0.00 total."
+      }
+    ]
+  },
+  "verification_evidence": {
+    "evidence_id": "ve-s01-001",
+    "contract_id": "cc-s01-001",
+    "scenario_id": "s01",
+    "collected_at": "2026-09-27T13:57:18.416524Z",
+    "pytest": {
+      "exit_code": 0,
+      "tests_total": 27,
+      "tests_passed": 27,
+      "tests_failed": 0,
+      "tests_errors": 0,
+      "tests_skipped": 0,
+      "duration_seconds": 0.29488301277160645,
+      "results": [
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_list_products_empty",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_get_product_not_found",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_checkout_no_coupon_http",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_checkout_percentage_coupon_http",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_checkout_fixed_coupon_http",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_checkout_coupon_not_found_returns_400",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_checkout_product_not_found_returns_400",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_checkout_insufficient_stock_returns_400",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_get_coupon_http",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_get_coupon_not_found_http",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_api.py::test_checkout_returns_order_id",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_checkout_no_coupon",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_checkout_percentage_coupon",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_checkout_fixed_coupon",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_coupon_not_found_raises",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_product_not_found_raises",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_insufficient_stock_raises",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_coupon_use_count_incremented",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_stock_reduced_after_checkout",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_checkout.py::test_case_insensitive_coupon_code",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_invariants.py::test_payment_never_negative_when_coupon_exceeds_subtotal",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_invariants.py::test_payment_never_negative_100pct_equivalent",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_cannot_be_applied_to_empty_cart",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_lookup_uppercase",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_lookup_lowercase",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_invariants.py::test_coupon_lookup_mixed_case",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        },
+        {
+          "node_id": "checkoutlab/tests/test_invariants.py::test_percentage_coupon_over_100_does_not_produce_negative_total",
+          "outcome": "passed",
+          "duration_seconds": 0.0,
+          "failure_message": null
+        }
+      ],
+      "raw_summary": "27 passed in 27 total"
+    },
+    "mypy": {
+      "exit_code": 0,
+      "error_count": 0,
+      "errors": [],
+      "raw_output": "Success: no issues found in 30 source files"
+    },
+    "ruff": {
+      "exit_code": 0,
+      "violation_count": 0,
+      "violations": [],
+      "raw_output": "[]"
+    },
+    "git_diff": {
+      "changed_files": [
+        "proofloop/cli.py",
+        "proofloop/tests/test_schemas.py",
+        "proofloop/verifiers/mypy_runner.py",
+        "proofloop/verifiers/pytest_runner.py",
+        "proofloop/verifiers/ruff_runner.py"
+      ],
+      "diff_stat": "proofloop/cli.py                     | 89 +++++++++++++++++++++++++++++++++++-\n proofloop/tests/test_schemas.py      | 31 +++++++++++++\n proofloop/verifiers/mypy_runner.py   |  3 +-\n proofloop/verifiers/pytest_runner.py |  8 ++--\n proofloop/verifiers/ruff_runner.py   |  3 +-\n 5 files changed, 128 insertions(+), 6 deletions(-)"
+    }
+  },
+  "verification_summary": {
+    "pytest_passed": true,
+    "pytest_tests_total": 27,
+    "pytest_tests_failed": 0,
+    "mypy_passed": true,
+    "mypy_error_count": 0,
+    "ruff_passed": true,
+    "ruff_violation_count": 0,
+    "all_deterministic_pass": true
+  },
+  "adversarial_summary": {
+    "total_findings": 1,
+    "critical_findings": 1,
+    "high_findings": 0,
+    "open_blocking_findings": 0,
+    "all_blocking_resolved": true
+  },
+  "evidence_items": [
+    {
+      "requirement_id": "req-01",
+      "requirement_description": "Checkout endpoint accepts an optional coupon_code string in the request body",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": true,
+      "detail": "pytest exit_code=0; 27/27 passed",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "req-02",
+      "requirement_description": "A PERCENTAGE coupon reduces the total by (discount_percent / 100) * subtotal",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": true,
+      "detail": "pytest exit_code=0; 27/27 passed",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "req-03",
+      "requirement_description": "A FIXED coupon reduces the total by the fixed discount_amount",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": true,
+      "detail": "pytest exit_code=0; 27/27 passed",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "req-04",
+      "requirement_description": "An unknown coupon_code returns HTTP 400 with error detail 'coupon_not_found'",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": true,
+      "detail": "pytest exit_code=0; 27/27 passed",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "req-05",
+      "requirement_description": "An expired coupon (expires_at < now) returns HTTP 400 with error detail 'coupon_expired'",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": true,
+      "detail": "pytest exit_code=0; 27/27 passed",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "req-06",
+      "requirement_description": "A single-use coupon that has already been used returns HTTP 400 with error detail 'coupon_already_used'",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": false,
+      "detail": "pytest exit_code=0; 27/27 passed",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "req-07",
+      "requirement_description": "The response includes a discount_applied field showing the monetary discount",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": false,
+      "detail": "pytest exit_code=0; 27/27 passed",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "inv-01",
+      "requirement_description": "The payment amount charged to the customer must never be negative. When a coupon discount exceeds the order subtotal, the payment amount must be floored at zero (0.00).",
+      "evidence_category": "llm_reasoning",
+      "met": true,
+      "is_blocking": true,
+      "detail": "No open adversarial findings referencing inv-01",
+      "tool_exit_code": null
+    },
+    {
+      "requirement_id": "inv-02",
+      "requirement_description": "A coupon cannot be applied to an empty order (zero-item cart).",
+      "evidence_category": "llm_reasoning",
+      "met": true,
+      "is_blocking": true,
+      "detail": "No open adversarial findings referencing inv-02",
+      "tool_exit_code": null
+    },
+    {
+      "requirement_id": "inv-03",
+      "requirement_description": "Coupon codes are case-insensitive: 'SAVE10' and 'save10' refer to the same coupon.",
+      "evidence_category": "llm_reasoning",
+      "met": true,
+      "is_blocking": false,
+      "detail": "No open adversarial findings referencing inv-03",
+      "tool_exit_code": null
+    },
+    {
+      "requirement_id": "type-check",
+      "requirement_description": "mypy type checking passes with no errors",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": false,
+      "detail": "mypy exit_code=0; 0 error(s)",
+      "tool_exit_code": 0
+    },
+    {
+      "requirement_id": "lint",
+      "requirement_description": "ruff lint passes with no violations",
+      "evidence_category": "deterministic",
+      "met": true,
+      "is_blocking": false,
+      "detail": "ruff exit_code=0; 0 violation(s)",
+      "tool_exit_code": 0
+    }
+  ],
+  "conclusion": "Change contract cc-s01-001 (scenario s01) is VERIFIED. All 27 tests passed, mypy reported 0 error(s), ruff reported 0 violation(s), and all 1 adversarial finding(s) were resolved.",
+  "warnings": [],
+  "missing_artifacts": []
+}
