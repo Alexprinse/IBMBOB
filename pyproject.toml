@@ -63,3 +63,7 @@ ignore = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["proofloop*", "checkoutlab*"]
+
+[tool.vercel]
+entrypoint = "checkoutlab.app.main:app"
+
