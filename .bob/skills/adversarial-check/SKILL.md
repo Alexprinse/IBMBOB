@@ -4,7 +4,7 @@ description: >
   Challenge a completed implementation by assuming it is potentially wrong.
   Use this skill after implementation is complete and tests pass. The skill
   hunts for invariant violations, edge cases, security regressions, and
-  missing tests. Produces .proofloop/session/adversarial_report.json.
+  missing tests. Produces .proofloop/session/adversarial-report.json.
   Triggers: "challenge", "adversarial check", "verify", "look for bugs",
   "what could go wrong", "find edge cases", "security review", "adversarial".
 ---
@@ -21,14 +21,14 @@ attempt to break the implementation.
 ## When to use
 
 After implementation is complete, a Change Contract exists at
-`.proofloop/session/change_contract.json`, and you are operating in
+`.proofloop/session/change-contract.json`, and you are operating in
 adversarial mode.
 
 ## Procedure
 
 ### Step 1 — Load the Change Contract
 
-Read `.proofloop/session/change_contract.json`.
+Read `.proofloop/session/change-contract.json`.
 Extract: invariants, affected_components, security_concerns.
 
 ### Step 2 — Critical invariant checks
@@ -75,7 +75,7 @@ Check for:
 
 ### Step 6 — Write the Adversarial Report
 
-Write to `.proofloop/session/adversarial_report.json`.
+Write to `.proofloop/session/adversarial-report.json`.
 Use the schema at `proofloop/schemas/adversarial_report.py`.
 
 Every finding must include:
@@ -105,4 +105,4 @@ If critical findings exist, print: "⚠ CRITICAL FINDINGS REQUIRE REPAIR BEFORE 
 
 ## Output
 
-File: `.proofloop/session/adversarial_report.json`
+File: `.proofloop/session/adversarial-report.json`

@@ -2,9 +2,9 @@
 name: proof-pack
 description: >
   Assemble the final Proof Pack for a completed ProofLoop session.
-  Use this skill after all four session artifacts exist: change_contract.json,
-  adversarial_report.json, repair_log.json, and verification_evidence.json.
-  Produces .proofloop/session/proof_pack.json with a final VERIFIED / FAILED
+  Use this skill after all four session artifacts exist: change-contract.json,
+  adversarial-report.json, repair-log.json, and verification-evidence.json.
+  Produces .proofloop/session/proof-pack.json with a final VERIFIED / FAILED
   status backed by deterministic evidence.
   Triggers: "proof pack", "assemble evidence", "final status", "is it done",
   "generate proof", "verification complete", "what is the result".
@@ -28,67 +28,74 @@ After the full ProofLoop workflow has run:
 
 ## Procedure
 
-### Step 1 — Check all artifacts exist
+### Step 1 — Check session state
 
-Required files:
-- `.proofloop/session/change_contract.json`
-- `.proofloop/session/adversarial_report.json`
-- `.proofloop/session/repair_log.json`
-- `.proofloop/session/verification_evidence.json`
+Run:
+```bash
+python proofloop/cli.py status
+```
 
-If any are missing, report exactly which file is missing and stop.
+This shows which artifacts are present and the current `final_status` if a
+proof pack already exists.
+
+Required files (three are mandatory, one is expected):
+- `.proofloop/session/change-contract.json`   — REQUIRED
+- `.proofloop/session/adversarial-report.json` — REQUIRED
+- `.proofloop/session/repair-log.json`         — REQUIRED
+- `.proofloop/session/verification-evidence.json` — EXPECTED (absent → INCOMPLETE)
+
+If any of the first three are missing, stop and report which file is absent.
 
 ### Step 2 — Run the assembler CLI
 
-```
-python -m proofloop proof-pack --session .proofloop/session/
+```bash
+python proofloop/cli.py proof-pack
 ```
 
 This command:
-1. Validates all input artifacts
-2. Applies status determination rules (see rules-verifier/02-proof-pack-assembly.md)
-3. Writes `.proofloop/session/proof_pack.json`
-4. Prints the summary line
+1. Loads and validates all session artifacts
+2. Applies status determination rules
+3. Writes `.proofloop/session/proof-pack.json`
+4. Prints the final status
+5. Exits non-zero for FAILED or INCOMPLETE
 
 ### Step 3 — Read and present the result
 
-Read `.proofloop/session/proof_pack.json`.
-Present the final status with the summary line.
+Read `.proofloop/session/proof-pack.json`.
+Present the final status with the conclusion.
 
 Format:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+============================================================
 PROOF PACK — {scenario_id}
 Status: {VERIFIED | VERIFIED_WITH_WARNINGS | FAILED | INCOMPLETE}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{summary line}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+============================================================
+{conclusion}
+============================================================
 Deterministic evidence:
   pytest:  {tests_passed}/{tests_total} passed  [exit {pytest_exit_code}]
   mypy:    {PASS|FAIL}  [exit {mypy_exit_code}]
   ruff:    {PASS|FAIL}  [exit {ruff_exit_code}]
 LLM reasoning:
   Adversarial findings: {total}
-    Critical resolved: {critical_resolved}/{critical_total}
-    High resolved:     {high_resolved}/{high_total}
+    Open blocking: {open_blocking}
 Repairs applied: {repair_count}
-Residual risks: {residual_risk_count}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+============================================================
 ```
 
 ### Step 4 — Handle non-VERIFIED status
 
 If status is FAILED:
-- List every unresolved critical finding with its description.
-- State: "Proof Pack cannot be considered complete until these findings are resolved."
+- List every unresolved critical/high finding with its description.
+- State: "Proof Pack is FAILED. These findings must be resolved before VERIFIED."
 
 If status is VERIFIED_WITH_WARNINGS:
-- List every unresolved high finding.
+- List every unresolved medium/low finding.
 - State: "Change is functionally verified with residual risks. Review before merging."
 
 If status is INCOMPLETE:
-- List missing artifacts.
-- State: "Run the full ProofLoop workflow before assembling a Proof Pack."
+- List missing artifacts from `missing_artifacts` field.
+- State: "Run `python proofloop/cli.py verify --all` then re-run `proof-pack`."
 
 ## What you do NOT do
 
@@ -96,8 +103,9 @@ If status is INCOMPLETE:
 - Do not remove findings from the Proof Pack to make the status look better.
 - Do not rerun verification to fish for a passing result.
   If verification failed, report it as failed.
+- Do not report VERIFIED when `verification-evidence.json` is absent.
 
 ## Output
 
-File: `.proofloop/session/proof_pack.json`
+File: `.proofloop/session/proof-pack.json`
 Displayed: Formatted summary in the terminal

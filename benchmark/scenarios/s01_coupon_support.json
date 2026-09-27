@@ -1,0 +1,120 @@
+{
+  "contract_id": "cc-s01-001",
+  "created_at": "2025-01-01T00:00:00Z",
+  "scenario_id": "s01",
+  "request_raw": "Add promotional coupon support to checkout. Customers should be able to enter a coupon code at checkout and receive a percentage or fixed-amount discount on their order total.",
+  "request_normalized": "Add coupon code support to the checkout flow with percentage and fixed-amount discount types.",
+  "intended_behavior": [
+    "Checkout endpoint accepts an optional coupon_code field",
+    "A valid coupon reduces the order total by the configured discount amount",
+    "An invalid or expired coupon returns a 400 error with a clear message",
+    "The payment amount sent to the payment service is never negative",
+    "Coupon usage is recorded so single-use coupons cannot be reused"
+  ],
+  "functional_requirements": [
+    {
+      "id": "req-01",
+      "description": "Checkout endpoint accepts an optional coupon_code string in the request body",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-02",
+      "description": "A PERCENTAGE coupon reduces the total by (discount_percent / 100) * subtotal",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-03",
+      "description": "A FIXED coupon reduces the total by the fixed discount_amount",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-04",
+      "description": "An unknown coupon_code returns HTTP 400 with error detail 'coupon_not_found'",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-05",
+      "description": "An expired coupon (expires_at < now) returns HTTP 400 with error detail 'coupon_expired'",
+      "priority": "must_have"
+    },
+    {
+      "id": "req-06",
+      "description": "A single-use coupon that has already been used returns HTTP 400 with error detail 'coupon_already_used'",
+      "priority": "should_have"
+    },
+    {
+      "id": "req-07",
+      "description": "The response includes a discount_applied field showing the monetary discount",
+      "priority": "should_have"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "inv-01",
+      "description": "The payment amount charged to the customer must never be negative. When a coupon discount exceeds the order subtotal, the payment amount must be floored at zero (0.00).",
+      "severity": "critical"
+    },
+    {
+      "id": "inv-02",
+      "description": "A coupon cannot be applied to an empty order (zero-item cart).",
+      "severity": "high"
+    },
+    {
+      "id": "inv-03",
+      "description": "Coupon codes are case-insensitive: 'SAVE10' and 'save10' refer to the same coupon.",
+      "severity": "medium"
+    }
+  ],
+  "affected_components": [
+    "checkoutlab/app/services/checkout.py",
+    "checkoutlab/app/models.py",
+    "checkoutlab/app/schemas.py",
+    "checkoutlab/app/main.py",
+    "checkoutlab/tests/test_checkout.py",
+    "checkoutlab/tests/test_invariants.py",
+    "checkoutlab/tests/test_api.py"
+  ],
+  "api_implications": [
+    "POST /checkout request schema gains optional coupon_code: str | null",
+    "POST /checkout response schema gains discount_applied: Decimal",
+    "New GET /coupons/{code} endpoint for coupon lookup (optional)"
+  ],
+  "data_schema_implications": [
+    "New Coupon table: id, code, discount_type (PERCENTAGE|FIXED), discount_value, expires_at, max_uses, use_count",
+    "CheckoutOrder table gains coupon_id FK (nullable)"
+  ],
+  "security_concerns": [
+    "Coupon codes must not leak internal DB IDs in error messages",
+    "Coupon lookup must use parameterised queries (no SQL injection)"
+  ],
+  "required_evidence": {
+    "functional_tests": [
+      "test_coupon_percentage_discount_applied",
+      "test_coupon_fixed_discount_applied",
+      "test_coupon_not_found_returns_400",
+      "test_coupon_expired_returns_400",
+      "test_no_coupon_checkout_unchanged"
+    ],
+    "invariant_checks": [
+      "test_payment_never_negative_when_coupon_exceeds_subtotal"
+    ],
+    "type_check": [
+      "mypy proofloop/ checkoutlab/ --ignore-missing-imports"
+    ],
+    "lint": [
+      "ruff check proofloop/ checkoutlab/"
+    ],
+    "api_compatibility": [],
+    "security_check": [],
+    "regression_tests": [
+      "test_checkout_without_coupon_still_works"
+    ]
+  },
+  "estimated_regression_risk": "medium",
+  "rollback_requirements": [
+    "Remove coupon_code field from CheckoutRequest schema",
+    "Remove Coupon model and migration",
+    "Remove discount logic from checkout service"
+  ],
+  "notes": "S01 hero scenario. The seeded defect is the absence of a floor guard in the discount calculation: final_total = subtotal - discount (missing max(0, ...) wrapper). The adversarial agent must catch this via inv-01."
+}

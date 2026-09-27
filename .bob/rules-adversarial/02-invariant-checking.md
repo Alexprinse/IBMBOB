@@ -29,7 +29,7 @@ None of these are acceptable. The guard is always `max(Decimal("0.00"), calculat
 
 ## MANDATORY: Test existence check
 
-For each invariant in the Change Contract with `criticality: "must_pass"`:
+For each invariant in the Change Contract with `severity: "critical"` or `"high"`:
 
 1. Find the test file(s) in `checkoutlab/tests/`
 2. Search for a test that exercises that invariant
@@ -56,12 +56,12 @@ def test_coupon_exceeding_subtotal_produces_non_negative_total():
 For each invariant in the contract:
 
 1. Note the invariant description
-2. Note the verification_method
-3. If verification_method is "test": find the specific test
+2. Note the severity (critical | high | medium | low)
+3. Find the specific test in `checkoutlab/tests/` that covers this invariant
 4. If no specific test: create a finding with:
    - severity: high
    - category: missing_test
-   - remediation_task: "Add test for [invariant description]"
+   - suggested_repair: "Add test for [invariant description]"
 
 ## Output
 

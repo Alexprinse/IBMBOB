@@ -4,7 +4,7 @@ description: >
   Transform a plain developer request into a structured, machine-readable
   Change Contract. Use this skill when a developer describes a change they want
   to make. The skill produces a JSON file at
-  .proofloop/session/change_contract.json that feeds every downstream agent.
+  .proofloop/session/change-contract.json that feeds every downstream agent.
   Triggers: "add feature", "change behavior", "implement", "modify",
   "I want to", "new requirement", "update", "refactor for".
 ---
@@ -56,7 +56,7 @@ Use the categories:
 
 ### Step 5 — Write the Change Contract
 
-Write the JSON file to `.proofloop/session/change_contract.json`.
+Write the JSON file to `.proofloop/session/change-contract.json`.
 Use the schema at `proofloop/schemas/change_contract.py`.
 
 Required fields:
@@ -91,4 +91,4 @@ Ask: "Does this capture what you need? Proceed?"
 
 ## Output
 
-File: `.proofloop/session/change_contract.json`
+File: `.proofloop/session/change-contract.json`

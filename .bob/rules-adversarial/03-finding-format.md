@@ -2,33 +2,29 @@
 
 ## adversarial-report.json schema
 
+The adversarial report is written to `.proofloop/session/adversarial-report.json`.
+It is validated against `proofloop/schemas/adversarial_report.py`.
+
 ```json
 {
-  "report_id": "adv-{scenario_id}-001",
-  "timestamp": "ISO 8601 datetime",
-  "change_contract_id": "same id as change-contract.json",
+  "report_id": "ar-s01-001",
+  "contract_id": "cc-s01-001",
+  "created_at": "2025-01-01T12:00:00Z",
+  "scenario_id": "s01",
   "findings": [
     {
       "finding_id": "af-01",
       "severity": "critical",
       "category": "invariant_violation",
-      "invariant_id": "inv-01",
-      "title": "One-line description of the finding",
       "description": "Specific description with example values showing the violation",
-      "code_location": "checkoutlab/app/services/checkout.py: apply_coupon()",
+      "evidence": "What was observed in code or reasoning (with file:line reference)",
       "evidence_category": "llm_reasoning",
-      "remediation_task": "Specific action for repair agent. Example: Add max(Decimal('0.00'), ...) guard.",
-      "is_blocking": true
+      "suggested_repair": "Specific action for repair agent. Example: Add max(Decimal('0.00'), ...) guard.",
+      "status": "open",
+      "resolved_by_repair_id": null
     }
   ],
-  "summary": {
-    "total_findings": 1,
-    "critical": 1,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "blocking_findings": 1
-  }
+  "summary": "N findings: X critical, Y high, Z medium, W low."
 }
 ```
 
@@ -51,13 +47,25 @@
 | `scope_creep` | Implementation exceeds what the contract specified |
 | `edge_case` | Unhandled edge condition not covered by an invariant |
 
+## Finding status values
+
+| Status | Meaning |
+|---|---|
+| `open` | Finding has not been addressed |
+| `resolved` | Finding was addressed by a recorded repair |
+| `accepted_risk` | Finding acknowledged but intentionally not repaired |
+
+## Output file
+
+Always write to: `.proofloop/session/adversarial-report.json`
+
 ## What makes a good finding
 
 A good finding:
-- Has a specific code location (file and function name at minimum)
+- Has a specific code location in the `evidence` field (file and line number or function name)
 - Has a specific example showing the failure (with actual values)
-- Has a remediation task specific enough to act on without asking questions
-- Correctly identifies the evidence_category as "llm_reasoning"
+- Has a `suggested_repair` specific enough to act on without asking questions
+- Always uses `"evidence_category": "llm_reasoning"` (adversarial analysis is never deterministic)
 
 A bad finding:
 - "The code might have issues with edge cases"

@@ -1,0 +1,1 @@
+"""CheckoutLab app package."""

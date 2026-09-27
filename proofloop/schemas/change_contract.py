@@ -3,25 +3,24 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
-class Priority(str, Enum):
+class Priority(str, Enum):  # noqa: UP042
     must_have = "must_have"
     should_have = "should_have"
     nice_to_have = "nice_to_have"
 
 
-class Severity(str, Enum):
+class Severity(str, Enum):  # noqa: UP042
     critical = "critical"
     high = "high"
     medium = "medium"
     low = "low"
 
 
-class RegressionRisk(str, Enum):
+class RegressionRisk(str, Enum):  # noqa: UP042
     low = "low"
     medium = "medium"
     high = "high"
@@ -40,13 +39,13 @@ class Invariant(BaseModel):
 
 
 class RequiredEvidence(BaseModel):
-    functional_tests: List[str] = Field(default_factory=list)
-    invariant_checks: List[str] = Field(default_factory=list)
-    type_check: List[str] = Field(default_factory=list)
-    lint: List[str] = Field(default_factory=list)
-    api_compatibility: List[str] = Field(default_factory=list)
-    security_check: List[str] = Field(default_factory=list)
-    regression_tests: List[str] = Field(default_factory=list)
+    functional_tests: list[str] = Field(default_factory=list)
+    invariant_checks: list[str] = Field(default_factory=list)
+    type_check: list[str] = Field(default_factory=list)
+    lint: list[str] = Field(default_factory=list)
+    api_compatibility: list[str] = Field(default_factory=list)
+    security_check: list[str] = Field(default_factory=list)
+    regression_tests: list[str] = Field(default_factory=list)
 
 
 class ChangeContract(BaseModel):
@@ -55,14 +54,14 @@ class ChangeContract(BaseModel):
     scenario_id: str = Field(..., description="Benchmark scenario ID, e.g. s01")
     request_raw: str = Field(..., description="Verbatim developer request")
     request_normalized: str = Field(..., description="Normalized single-sentence summary")
-    intended_behavior: List[str] = Field(..., description="What should be true after this change")
-    functional_requirements: List[FunctionalRequirement]
-    invariants: List[Invariant]
-    affected_components: List[str]
-    api_implications: List[str] = Field(default_factory=list)
-    data_schema_implications: List[str] = Field(default_factory=list)
-    security_concerns: List[str] = Field(default_factory=list)
+    intended_behavior: list[str] = Field(..., description="What should be true after this change")
+    functional_requirements: list[FunctionalRequirement]
+    invariants: list[Invariant]
+    affected_components: list[str]
+    api_implications: list[str] = Field(default_factory=list)
+    data_schema_implications: list[str] = Field(default_factory=list)
+    security_concerns: list[str] = Field(default_factory=list)
     required_evidence: RequiredEvidence
     estimated_regression_risk: RegressionRisk
-    rollback_requirements: List[str] = Field(default_factory=list)
-    notes: Optional[str] = None
+    rollback_requirements: list[str] = Field(default_factory=list)
+    notes: str | None = None

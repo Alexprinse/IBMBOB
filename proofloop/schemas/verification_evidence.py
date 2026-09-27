@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ class TestResult(BaseModel):
     node_id: str
     outcome: str  # "passed" | "failed" | "error" | "skipped"
     duration_seconds: float
-    failure_message: Optional[str] = None
+    failure_message: str | None = None
 
 
 class PytestEvidence(BaseModel):
@@ -22,26 +22,26 @@ class PytestEvidence(BaseModel):
     tests_errors: int
     tests_skipped: int
     duration_seconds: float
-    results: List[TestResult] = Field(default_factory=list)
+    results: list[TestResult] = Field(default_factory=list)
     raw_summary: str = Field(..., description="Last line(s) of pytest output")
 
 
 class MypyEvidence(BaseModel):
     exit_code: int
     error_count: int
-    errors: List[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
     raw_output: str
 
 
 class RuffEvidence(BaseModel):
     exit_code: int
     violation_count: int
-    violations: List[Dict[str, Any]] = Field(default_factory=list)
+    violations: list[dict[str, Any]] = Field(default_factory=list)
     raw_output: str
 
 
 class GitDiffEvidence(BaseModel):
-    changed_files: List[str]
+    changed_files: list[str]
     diff_stat: str
 
 

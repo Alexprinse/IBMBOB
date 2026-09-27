@@ -19,27 +19,32 @@ Never fabricate exit codes, test counts, or failure messages.
 
 ## What you run
 
-In order:
+Use the ProofLoop CLI (always from project root with venv active):
 
-1. **pytest** — collect test results
+```bash
+python proofloop/cli.py verify --tests    # runs pytest
+python proofloop/cli.py verify --types    # runs mypy
+python proofloop/cli.py verify --lint     # runs ruff
+python proofloop/cli.py verify --all      # runs all three → writes verification-evidence.json
+```
+
+`verify --all` writes `.proofloop/session/verification-evidence.json` automatically.
+
+You may also run the tools individually for diagnostic output:
+
+1. **pytest**
    ```
-   python -m pytest checkoutlab/tests/ -v --tb=short --json-report --json-report-file=.proofloop/session/pytest_results.json
+   python -m pytest checkoutlab/tests/ -v --tb=short
    ```
 
-2. **mypy** — collect type errors
+2. **mypy**
    ```
-   python -m mypy checkoutlab/app/ --strict --ignore-missing-imports 2>&1 | tee .proofloop/session/mypy_results.txt; echo "exit:$?"
-   ```
-
-3. **ruff** — collect lint errors
-   ```
-   python -m ruff check checkoutlab/app/ --output-format=json > .proofloop/session/ruff_results.json 2>&1; echo "exit:$?"
+   python -m mypy proofloop/ checkoutlab/ --ignore-missing-imports
    ```
 
-4. **git diff** — collect changed files
+3. **ruff**
    ```
-   git diff --name-only HEAD > .proofloop/session/changed_files.txt
-   git diff --stat HEAD > .proofloop/session/diff_stat.txt
+   python -m ruff check proofloop/ checkoutlab/
    ```
 
 ## Recording rules
@@ -59,6 +64,5 @@ In order:
 
 ## Output artifact
 
-Write your evidence to `.proofloop/session/verification_evidence.json`.
+`verify --all` writes evidence to `.proofloop/session/verification-evidence.json`.
 The schema is defined in `proofloop/schemas/verification_evidence.py`.
-Use the `proofloop verify --all` CLI command to automate this.

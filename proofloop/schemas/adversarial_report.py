@@ -3,19 +3,18 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
-class FindingSeverity(str, Enum):
+class FindingSeverity(str, Enum):  # noqa: UP042
     critical = "critical"
     high = "high"
     medium = "medium"
     low = "low"
 
 
-class FindingCategory(str, Enum):
+class FindingCategory(str, Enum):  # noqa: UP042
     invariant_violation = "invariant_violation"
     edge_case = "edge_case"
     security = "security"
@@ -23,12 +22,12 @@ class FindingCategory(str, Enum):
     missing_test = "missing_test"
 
 
-class EvidenceCategory(str, Enum):
+class EvidenceCategory(str, Enum):  # noqa: UP042
     deterministic = "deterministic"
     llm_reasoning = "llm_reasoning"
 
 
-class FindingStatus(str, Enum):
+class FindingStatus(str, Enum):  # noqa: UP042
     open = "open"
     resolved = "resolved"
     accepted_risk = "accepted_risk"
@@ -43,7 +42,7 @@ class AdversarialFinding(BaseModel):
     evidence_category: EvidenceCategory
     suggested_repair: str
     status: FindingStatus = FindingStatus.open
-    resolved_by_repair_id: Optional[str] = None
+    resolved_by_repair_id: str | None = None
 
 
 class AdversarialReport(BaseModel):
@@ -51,7 +50,7 @@ class AdversarialReport(BaseModel):
     contract_id: str = Field(..., description="References ChangeContract.contract_id")
     created_at: datetime
     scenario_id: str
-    findings: List[AdversarialFinding]
+    findings: list[AdversarialFinding]
     summary: str = Field(..., description="One-line summary of findings count")
 
     @property

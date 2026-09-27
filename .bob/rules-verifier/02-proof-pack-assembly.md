@@ -1,56 +1,68 @@
 # Verifier Mode — Proof Pack Assembly Rules
 
+## Session artifact filenames
+
+All session artifacts use **hyphen** naming under `.proofloop/session/`:
+
+| Artifact | Filename |
+|---|---|
+| Change Contract | `change-contract.json` |
+| Adversarial Report | `adversarial-report.json` |
+| Repair Log | `repair-log.json` |
+| Verification Evidence | `verification-evidence.json` |
+| Proof Pack | `proof-pack.json` |
+
 ## When to assemble the Proof Pack
 
 Assemble the Proof Pack ONLY after all of the following exist:
 
-1. `.proofloop/session/change_contract.json` — Change Contract
-2. `.proofloop/session/adversarial_report.json` — Adversarial Report
-3. `.proofloop/session/repair_log.json` — Repair Log (may be empty `[]` if no repairs)
-4. `.proofloop/session/verification_evidence.json` — Verification Evidence
+1. `.proofloop/session/change-contract.json` — Change Contract
+2. `.proofloop/session/adversarial-report.json` — Adversarial Report
+3. `.proofloop/session/repair-log.json` — Repair Log (may have empty `repairs` list if no repairs)
+4. `.proofloop/session/verification-evidence.json` — Verification Evidence
 
-If any artifact is missing, report the gap and stop. Do not assemble a partial Proof Pack.
+If `verification-evidence.json` is missing, the assembler still writes `proof-pack.json` with
+`final_status = "INCOMPLETE"` and lists the missing artifact in `missing_artifacts`.
+If any of the other three are missing, assembly raises an error.
 
 ## Status determination rules
 
 Apply these rules IN ORDER:
 
-1. If `verification_evidence.pytest_exit_code != 0` → status = `FAILED`
-2. If `verification_evidence.mypy_exit_code != 0` → status = `FAILED`
-3. If any adversarial finding with `severity = "critical"` is NOT resolved → status = `FAILED`
-4. If any adversarial finding with `severity = "high"` is NOT resolved → status = `VERIFIED_WITH_WARNINGS`
-5. If `repair_log` is non-empty and all repairs passed re-verification → status = `VERIFIED`
-6. If all deterministic checks pass and no open critical/high findings → status = `VERIFIED`
+1. If `verification-evidence.json` is absent → status = `INCOMPLETE`
+2. If `pytest exit_code != 0` → status = `FAILED`
+3. If `mypy exit_code != 0` → status = `FAILED`
+4. If any adversarial finding with `severity = "critical"` has `status = "open"` → status = `FAILED`
+5. If any adversarial finding with `severity = "high"` has `status = "open"` → status = `FAILED`
+6. If any adversarial finding with `severity = "medium"` or `"low"` has `status = "open"` → status = `VERIFIED_WITH_WARNINGS`
+7. Otherwise → status = `VERIFIED`
 
-Default status when in doubt: `INCOMPLETE`. Never default to `VERIFIED`.
-
-## Summary line format
-
-The `summary` field must follow this template exactly:
-
-```
-Requirements: {req_met}/{req_total} | Tests: {tests_passed}/{tests_total} | Type check: {PASS|FAIL} | Lint: {PASS|FAIL} | Security: {sec_status} | Residual risks: {count} warning(s)
-```
-
-Example:
-```
-Requirements: 3/3 | Tests: 24/24 | Type check: PASS | Lint: PASS | Security: PASS | Residual risks: 1 warning(s)
-```
+Default when in doubt: `INCOMPLETE`. Never default to `VERIFIED`.
 
 ## Assembly command
 
-Run: `python -m proofloop proof-pack --session .proofloop/session/`
+```bash
+python proofloop/cli.py proof-pack
+```
 
 This will:
-1. Load all four input artifacts
-2. Validate they are present and schema-valid
+1. Load all session artifacts from `.proofloop/session/`
+2. Validate them against the Pydantic schemas
 3. Apply status determination rules
-4. Write `.proofloop/session/proof_pack.json`
-5. Print the summary line to stdout
+4. Write `.proofloop/session/proof-pack.json`
+5. Print the final status to stdout
+6. Exit non-zero for FAILED or INCOMPLETE
+
+## Check session state at any time
+
+```bash
+python proofloop/cli.py status
+```
 
 ## What you do NOT do
 
 - Do not write the Proof Pack JSON manually. Use the CLI.
 - Do not override the status determination rules.
 - Do not omit any adversarial findings from the Proof Pack.
-- Do not mark a finding as resolved unless a repair was recorded in `repair_log.json`.
+- Do not mark a finding as resolved unless a repair was recorded in `repair-log.json`.
+- Do not report VERIFIED when `verification-evidence.json` is absent.
